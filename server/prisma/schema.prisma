@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator erd {
+  provider = "prisma-erd-generator"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Pool {
+  id            String         @id @default(cuid())
+  title         String
+  code          String         @unique
+  ownerId       String?
+  createdAt     DateTime       @default(now()) @map("created_at")
+
+  participants  Participant[]
+  owner         User?          @relation(fields: [ownerId], references: [id])
+
+  @@map("pools")
+}
+
+model Participant {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  poolId    String    @map("pool_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  guesses   Guess[]
+  user      User      @relation(fields: [userId], references: [id])
+  pool      Pool      @relation(fields: [poolId], references: [id])
+
+  @@unique([userId, poolId])
+  @@map("participants")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  name            String
+  email           String    @unique
+  avatar          String?
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  participatingAt Participant[]
+  ownPools        Pool[]
+
+  @@map("users")
+}
+
+model Game {
+  id                    String    @id @default(cuid())
+  date                  DateTime
+  firstTeamCountryCode  String    @map("first_team_country_code")
+  secondTeamCountryCode String    @map("second_team_country_code")
+  createdAt             DateTime  @default(now()) @map("created_at")
+
+  guesses               Guess[]
+
+  @@map("games")
+}
+
+model Guess {
+  id               String       @id @default(cuid())
+  firstTeamPoints  Int          @map("first_team_points")
+  secondTeamPoints Int          @map("second_team_points")
+  gameId           String       @map("game_id")
+  participantId    String       @map("participant_id")
+  createdAt        DateTime     @default(now()) @map("created_at")
+
+  game             Game         @relation(fields: [gameId], references: [id])
+  participant      Participant  @relation(fields: [participantId], references: [id])
+
+  @@map("guesses")
+}
